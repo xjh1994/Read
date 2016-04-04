@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Read</string>
+    <string name="title_activity_article">文章</string>
+    <string name="loading">加载中...</string>
 </resources>
