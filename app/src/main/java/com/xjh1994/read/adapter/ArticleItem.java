@@ -39,6 +39,7 @@ public class ArticleItem implements IAdapterItem<Article> {
             public void onClick(View v) {
                 Intent intent = new Intent(context, ArticleActivity.class);
                 intent.putExtra(ArticleActivity.LESSON, data.getLesson());
+                intent.putExtra("pointer", data.getPointer());
                 context.startActivity(intent);
             }
         });
