@@ -1,9 +1,13 @@
 package com.xjh1994.read.ui;
 
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 
+import com.orhanobut.logger.Logger;
 import com.xjh1994.read.R;
 import com.xjh1994.read.base.BaseActivity;
 import com.xjh1994.read.util.FileUtil;
@@ -43,6 +47,8 @@ public class ArticleActivity extends BaseActivity {
 
     @Override
     public void initViews() {
+        setBackTitle();
+
         tv_content = (AlignTextView) findViewById(R.id.tv_content);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
@@ -116,6 +122,50 @@ public class ArticleActivity extends BaseActivity {
                     }
                 });
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu_article, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_words:
+                displayWords();
+                break;
+            case R.id.action_set_level:
+                setLevel();
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    private void setLevel() {
+
+    }
+
+    /**
+     * 高亮文章在单词列表中出现的单词
+     */
+    private void displayWords() {
+        if (TextUtils.isEmpty(contentBuilder.toString())) return;
+
+        SpannableStringBuilder spannableStringBuilder;
+
+        Map<String, Integer> wordMap = FileUtil.txt2Map(this, WORD_FILE);
+        for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
+            if (contentBuilder.toString().contains(entry.getKey())) {
+                Logger.d(entry.getKey());
+//                spannableStringBuilder = TextUtil.highlight(entry.getKey(), contentBuilder.toString());
+//                tv_content.setText(spannableStringBuilder);
+            }
+        }
     }
 
     private void readWords() {

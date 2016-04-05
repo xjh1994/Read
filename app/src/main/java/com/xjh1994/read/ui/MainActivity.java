@@ -2,6 +2,7 @@ package com.xjh1994.read.ui;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
+import android.view.LayoutInflater;
 
 import com.marshalchen.ultimaterecyclerview.UltimateRecyclerView;
 import com.xjh1994.read.R;
@@ -121,6 +122,8 @@ public class MainActivity extends BaseActivity {
 
     private void onLoadMore() {
         ultimateRecyclerView.enableLoadmore();
+        adapter.setCustomLoadMoreView(LayoutInflater.from(this)
+                .inflate(R.layout.custom_bottom_progressbar, null));
         ultimateRecyclerView.setOnLoadMoreListener(new UltimateRecyclerView.OnLoadMoreListener() {
             @Override
             public void loadMore(int itemsCount, int maxLastVisiblePosition) {
@@ -163,6 +166,7 @@ public class MainActivity extends BaseActivity {
 
     /**
      * 获取文章标题
+     *
      * @return
      */
     public List<Article> getArticleTitle() {

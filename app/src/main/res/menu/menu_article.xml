@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_words"
+        android:icon="@drawable/ic_remove_red_eye_white_24dp"
+        android:orderInCategory="100"
+        android:title="显示单词"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/action_set_level"
+        android:icon="@drawable/ic_format_list_numbered_white_24dp"
+        android:orderInCategory="100"
+        android:title="难度"
+        app:showAsAction="always" />
+</menu>
