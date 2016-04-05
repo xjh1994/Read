@@ -2,12 +2,19 @@ package com.xjh1994.read.ui;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.xjh1994.read.R;
 import com.xjh1994.read.base.BaseActivity;
@@ -18,6 +25,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -47,9 +56,7 @@ public class ArticleActivity extends BaseActivity {
 
     private Map<String, Integer> wordMap;
 
-    private WebView webView;
-
-    private static final String WEBVIEW_CONTENT = "<html><head></head><body style=\"text-align:justify;margin:0;\">%s</body></html>";
+    private TextView tv_content;
 
     @Override
     public void setContentView() {
@@ -60,11 +67,12 @@ public class ArticleActivity extends BaseActivity {
     public void initViews() {
         setBackTitle();
 
+        tv_content = (TextView) findViewById(R.id.tv_content);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
 
-        webView = (WebView) findViewById(R.id.webview);
-        webView.setVerticalScrollBarEnabled(false);
+//        webView = (WebView) findViewById(R.id.webview);
+//        webView.setVerticalScrollBarEnabled(false);
     }
 
     @Override
@@ -137,13 +145,48 @@ public class ArticleActivity extends BaseActivity {
                         int end = s.indexOf("New words");
                         result = s.substring(start, end);
                         result = result.replace("回答以下问题。\n", "");
-                        result = result.replaceAll("\n", "<br>");
 
-                        webView.loadData(String.format(WEBVIEW_CONTENT, result), "text/html", "utf-8");
+                        /** 给每个单词添加点击事件 */
+                        ssb = new SpannableStringBuilder(result);
+                        Pattern pattern = Pattern.compile("[a-zA-Z]+");
+                        Matcher matcher = pattern.matcher(result);
+                        while (matcher.find()) {
+                            String group = matcher.group();
+                            ClickableSpan cs = new MyClickableSpan(group, matcher.start(), matcher.end());
+                            ssb.setSpan(cs, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        }
+                        tv_content.setText(ssb);
+                        tv_content.setMovementMethod(LinkMovementMethod.getInstance());
                         progressBar.setVisibility(View.GONE);
                     }
                 });
 
+    }
+
+    SpannableStringBuilder ssb;
+
+    class MyClickableSpan extends ClickableSpan {
+        private String word;
+        private int start;
+        private int end;
+
+        public MyClickableSpan(String word, int start, int end) {
+            this.word = word;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public void onClick(View widget) {
+            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            tv_content.setText(ssb);
+        }
+
+        @Override
+        public void updateDrawState(TextPaint ds) {
+
+        }
     }
 
     private CharSequence[] levels = {"0", "1", "2", "3", "4", "5"};
@@ -168,19 +211,25 @@ public class ArticleActivity extends BaseActivity {
      * 高亮文章在单词列表中出现的单词
      */
     private void displayWords() {
+        if (TextUtils.isEmpty(result)) return;
 
         if (wordMap == null)
             wordMap = FileUtil.txt2Map(this, WORD_FILE);
 
         int level = (int) SharedPreferencesUtil.getData(this, KEY_WORD_LEVEL, 0);
 
+        ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
-            if (result.contains(entry.getKey()))
-                if (entry.getValue() <= level)
-                    result = result.replaceAll(entry.getKey() + " ", "<b>" + entry.getKey() + "</b> ");
+            String word = entry.getKey() + " ";
+            if (result.contains(word))
+                if (entry.getValue() <= level) {
+                    int start = result.indexOf(word);
+                    if (start < 0) continue;
+                    int end = start + entry.getKey().length();
+                    ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
         }
-        result = result.replaceAll("\\n", "<br>");
-        webView.loadData(String.format(WEBVIEW_CONTENT, result), "text/html", "utf-8");
+        tv_content.setText(ssb);
     }
 
     @Override
