@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorPrimary">#209e85</color>
+    <color name="colorPrimaryDark">#144b40</color>
     <color name="colorAccent">#FF4081</color>
+
+    <color name="secondaryTextColor">#DE000000</color>
+    <color name="primaryTextColor">#8A000000</color>
 
     <color name="md_grey_800">#424242</color>
     <color name="default_bg">#E8E8E7</color>

@@ -1,22 +1,32 @@
 package com.xjh1994.read.ui;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.text.Spannable;
 import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
-import com.orhanobut.logger.Logger;
 import com.xjh1994.read.R;
 import com.xjh1994.read.base.BaseActivity;
 import com.xjh1994.read.util.FileUtil;
-import com.xjh1994.read.view.AlignTextView;
+import com.xjh1994.read.util.SharedPreferencesUtil;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -31,14 +41,22 @@ public class ArticleActivity extends BaseActivity {
      * 文章详细信息
      */
 
+    public static final String KEY_WORD_LEVEL = "key_word_level";
+
     public static final String LESSON = "lesson";
 
     private String lesson;
+    private long pointer;
     private RandomAccessFile file;
 
-    private AlignTextView tv_content;
+    private String result;
+
     private ProgressBar progressBar;
     private StringBuilder contentBuilder;
+
+    private Map<String, Integer> wordMap;
+
+    private TextView tv_content;
 
     @Override
     public void setContentView() {
@@ -49,9 +67,12 @@ public class ArticleActivity extends BaseActivity {
     public void initViews() {
         setBackTitle();
 
-        tv_content = (AlignTextView) findViewById(R.id.tv_content);
+        tv_content = (TextView) findViewById(R.id.tv_content);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
+
+//        webView = (WebView) findViewById(R.id.webview);
+//        webView.setVerticalScrollBarEnabled(false);
     }
 
     @Override
@@ -62,6 +83,7 @@ public class ArticleActivity extends BaseActivity {
     @Override
     public void initData() {
         lesson = getIntent().getStringExtra(LESSON);
+        pointer = getIntent().getLongExtra("pointer", 0);
         if (TextUtils.isEmpty(lesson))
             return;
 
@@ -81,6 +103,8 @@ public class ArticleActivity extends BaseActivity {
                 contentBuilder = new StringBuilder();
                 try {
                     String line;
+                    if (pointer != 0)
+                        file.seek(pointer);
                     while ((line = file.readLine()) != null) {
                         line = new String(line.getBytes("ISO-8859-1"), "UTF-8").trim();
                         if (line.contains(lesson)) {
@@ -117,11 +141,95 @@ public class ArticleActivity extends BaseActivity {
 
                     @Override
                     public void onNext(String s) {
-                        tv_content.setText(s);
+                        int start = s.indexOf("回答以下问题。");
+                        int end = s.indexOf("New words");
+                        result = s.substring(start, end);
+                        result = result.replace("回答以下问题。\n", "");
+
+                        /** 给每个单词添加点击事件 */
+                        ssb = new SpannableStringBuilder(result);
+                        Pattern pattern = Pattern.compile("[a-zA-Z]+");
+                        Matcher matcher = pattern.matcher(result);
+                        while (matcher.find()) {
+                            String group = matcher.group();
+                            ClickableSpan cs = new MyClickableSpan(group, matcher.start(), matcher.end());
+                            ssb.setSpan(cs, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        }
+                        tv_content.setText(ssb);
+                        tv_content.setMovementMethod(LinkMovementMethod.getInstance());
                         progressBar.setVisibility(View.GONE);
                     }
                 });
 
+    }
+
+    SpannableStringBuilder ssb;
+
+    class MyClickableSpan extends ClickableSpan {
+        private String word;
+        private int start;
+        private int end;
+
+        public MyClickableSpan(String word, int start, int end) {
+            this.word = word;
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public void onClick(View widget) {
+            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            tv_content.setText(ssb);
+        }
+
+        @Override
+        public void updateDrawState(TextPaint ds) {
+
+        }
+    }
+
+    private CharSequence[] levels = {"0", "1", "2", "3", "4", "5"};
+
+    /**
+     * 设置单词显示级别
+     */
+    private void setLevel() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.dialog_select_word_level)
+                .setItems(levels, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SharedPreferencesUtil.saveData(ArticleActivity.this, KEY_WORD_LEVEL, which);
+                        displayWords();
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * 高亮文章在单词列表中出现的单词
+     */
+    private void displayWords() {
+        if (TextUtils.isEmpty(result)) return;
+
+        if (wordMap == null)
+            wordMap = FileUtil.txt2Map(this, WORD_FILE);
+
+        int level = (int) SharedPreferencesUtil.getData(this, KEY_WORD_LEVEL, 0);
+
+        ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
+            String word = entry.getKey() + " ";
+            if (result.contains(word))
+                if (entry.getValue() <= level) {
+                    int start = result.indexOf(word);
+                    if (start < 0) continue;
+                    int end = start + entry.getKey().length();
+                    ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+        }
+        tv_content.setText(ssb);
     }
 
     @Override
@@ -134,6 +242,9 @@ public class ArticleActivity extends BaseActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                break;
             case R.id.action_words:
                 displayWords();
                 break;
@@ -146,40 +257,12 @@ public class ArticleActivity extends BaseActivity {
         return true;
     }
 
-    private void setLevel() {
-
-    }
-
-    /**
-     * 高亮文章在单词列表中出现的单词
-     */
-    private void displayWords() {
-        if (TextUtils.isEmpty(contentBuilder.toString())) return;
-
-        SpannableStringBuilder spannableStringBuilder;
-
-        Map<String, Integer> wordMap = FileUtil.txt2Map(this, WORD_FILE);
-        for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
-            if (contentBuilder.toString().contains(entry.getKey())) {
-                Logger.d(entry.getKey());
-//                spannableStringBuilder = TextUtil.highlight(entry.getKey(), contentBuilder.toString());
-//                tv_content.setText(spannableStringBuilder);
-            }
-        }
-    }
-
-    private void readWords() {
-        Map<String, Integer> wordMap = FileUtil.txt2Map(this, WORD_FILE);
-        for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
-//            tv_words.append(entry.getKey() + "    " + entry.getValue() + "\n");
-        }
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         try {
-            file.close();
+            if (file != null)
+                file.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
