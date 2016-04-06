@@ -10,6 +10,8 @@ import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,6 +22,7 @@ import com.xjh1994.read.R;
 import com.xjh1994.read.base.BaseActivity;
 import com.xjh1994.read.util.FileUtil;
 import com.xjh1994.read.util.SharedPreferencesUtil;
+import com.xjh1994.read.util.TextJustification;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,6 +61,8 @@ public class ArticleActivity extends BaseActivity {
 
     private TextView tv_content;
 
+    private int width;
+
     @Override
     public void setContentView() {
         setContentView(R.layout.activity_article);
@@ -71,8 +76,10 @@ public class ArticleActivity extends BaseActivity {
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
 
-//        webView = (WebView) findViewById(R.id.webview);
-//        webView.setVerticalScrollBarEnabled(false);
+        Display display = getWindowManager().getDefaultDisplay();
+        DisplayMetrics dm = new DisplayMetrics();
+        display.getMetrics(dm);
+        width = dm.widthPixels;
     }
 
     @Override
@@ -146,24 +153,29 @@ public class ArticleActivity extends BaseActivity {
                         result = s.substring(start, end);
                         result = result.replace("回答以下问题。\n", "");
 
+                        justifiedResult = TextJustification.getJustifiedString(tv_content, tv_content.getWidth(), result);
+
                         /** 给每个单词添加点击事件 */
-                        ssb = new SpannableStringBuilder(result);
+                        ssb = new SpannableStringBuilder(justifiedResult);
                         Pattern pattern = Pattern.compile("[a-zA-Z]+");
-                        Matcher matcher = pattern.matcher(result);
+                        Matcher matcher = pattern.matcher(justifiedResult);
                         while (matcher.find()) {
                             String group = matcher.group();
                             ClickableSpan cs = new MyClickableSpan(group, matcher.start(), matcher.end());
                             ssb.setSpan(cs, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
+
                         tv_content.setText(ssb);
                         tv_content.setMovementMethod(LinkMovementMethod.getInstance());
+
                         progressBar.setVisibility(View.GONE);
                     }
                 });
 
     }
 
-    SpannableStringBuilder ssb;
+    private String justifiedResult;
+    private SpannableStringBuilder ssb;
 
     class MyClickableSpan extends ClickableSpan {
         private String word;
@@ -178,7 +190,7 @@ public class ArticleActivity extends BaseActivity {
 
         @Override
         public void onClick(View widget) {
-            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, justifiedResult.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             tv_content.setText(ssb);
         }
@@ -218,12 +230,12 @@ public class ArticleActivity extends BaseActivity {
 
         int level = (int) SharedPreferencesUtil.getData(this, KEY_WORD_LEVEL, 0);
 
-        ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, result.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.primaryTextColor)), 0, justifiedResult.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         for (Map.Entry<String, Integer> entry : wordMap.entrySet()) {
             String word = entry.getKey() + " ";
-            if (result.contains(word))
+            if (justifiedResult.contains(word))
                 if (entry.getValue() <= level) {
-                    int start = result.indexOf(word);
+                    int start = justifiedResult.indexOf(word);
                     if (start < 0) continue;
                     int end = start + entry.getKey().length();
                     ssb.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorAccent)), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
