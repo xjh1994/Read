@@ -3,4 +3,8 @@
     <string name="title_activity_article">文章</string>
     <string name="loading">加载中...</string>
     <string name="dialog_select_word_level">选择单词显示级别</string>
+    <string name="title_listen">First listen and then answer the following question.\n听录音，然后回答以下问题。</string>
+    <string name="title_words">New words and expressions\n生词和短语</string>
+    <string name="title_translation">参考译文</string>
+    <string name="title_lesson">Lesson</string>
 </resources>

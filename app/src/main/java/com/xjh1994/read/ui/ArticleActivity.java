@@ -52,7 +52,9 @@ public class ArticleActivity extends BaseActivity {
     private long pointer;
     private RandomAccessFile file;
 
-    private String result;
+    private String articleResult;
+    private String wordResult;
+    private String translationResult;
 
     private ProgressBar progressBar;
     private StringBuilder contentBuilder;
@@ -60,6 +62,8 @@ public class ArticleActivity extends BaseActivity {
     private Map<String, Integer> wordMap;
 
     private TextView tv_content;
+    private TextView tv_word;
+    private TextView tv_translation;
 
     private int width;
 
@@ -73,6 +77,8 @@ public class ArticleActivity extends BaseActivity {
         setBackTitle();
 
         tv_content = (TextView) findViewById(R.id.tv_content);
+        tv_word = (TextView) findViewById(R.id.tv_word);
+        tv_translation = (TextView) findViewById(R.id.tv_translation);
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
 
@@ -148,30 +154,54 @@ public class ArticleActivity extends BaseActivity {
 
                     @Override
                     public void onNext(String s) {
-                        int start = s.indexOf("回答以下问题。");
-                        int end = s.indexOf("New words");
-                        result = s.substring(start, end);
-                        result = result.replace("回答以下问题。\n", "");
-
-                        justifiedResult = TextJustification.getJustifiedString(tv_content, tv_content.getWidth(), result);
-
-                        /** 给每个单词添加点击事件 */
-                        ssb = new SpannableStringBuilder(justifiedResult);
-                        Pattern pattern = Pattern.compile("[a-zA-Z]+");
-                        Matcher matcher = pattern.matcher(justifiedResult);
-                        while (matcher.find()) {
-                            String group = matcher.group();
-                            ClickableSpan cs = new MyClickableSpan(group, matcher.start(), matcher.end());
-                            ssb.setSpan(cs, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        }
-
-                        tv_content.setText(ssb);
-                        tv_content.setMovementMethod(LinkMovementMethod.getInstance());
-
-                        progressBar.setVisibility(View.GONE);
+                        setArticle(s);
+                        setWord(s);
+                        setTranslation(s);
                     }
                 });
 
+    }
+
+    //TODO 中文对齐
+    private void setTranslation(String s) {
+        int start = s.indexOf(getString(R.string.title_translation));
+        int end = s.length();
+        translationResult = s.substring(start, end);
+        translationResult = translationResult.replace(getString(R.string.title_translation), "");
+//        String justifiedTranslationResult = TextJustification.getJustifiedString(tv_translation, tv_translation.getWidth(), translationResult);
+        tv_translation.setText(translationResult);
+    }
+
+    private void setWord(String s) {
+        int start = s.indexOf("生词和短语");
+        int end = s.indexOf(getString(R.string.title_translation));
+        wordResult = s.substring(start, end);
+        wordResult = wordResult.replace("生词和短语", "");
+        tv_word.setText(wordResult);
+    }
+
+    private void setArticle(String s) {
+        int start = s.indexOf("回答以下问题。");
+        int end = s.indexOf("New words");
+        articleResult = s.substring(start, end);
+        articleResult = articleResult.replace("回答以下问题。\n", "");
+
+        justifiedResult = TextJustification.getJustifiedString(tv_content, tv_content.getWidth(), articleResult);
+
+        /** 给每个单词添加点击事件 */
+        ssb = new SpannableStringBuilder(justifiedResult);
+        Pattern pattern = Pattern.compile("[a-zA-Z]+");
+        Matcher matcher = pattern.matcher(justifiedResult);
+        while (matcher.find()) {
+            String group = matcher.group();
+            ClickableSpan cs = new MyClickableSpan(group, matcher.start(), matcher.end());
+            ssb.setSpan(cs, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
+        tv_content.setText(ssb);
+        tv_content.setMovementMethod(LinkMovementMethod.getInstance());
+
+        progressBar.setVisibility(View.GONE);
     }
 
     private String justifiedResult;
@@ -223,7 +253,7 @@ public class ArticleActivity extends BaseActivity {
      * 高亮文章在单词列表中出现的单词
      */
     private void displayWords() {
-        if (TextUtils.isEmpty(result)) return;
+        if (TextUtils.isEmpty(articleResult)) return;
 
         if (wordMap == null)
             wordMap = FileUtil.txt2Map(this, WORD_FILE);

@@ -25,6 +25,38 @@
                 android:textColor="@color/primaryTextColor"
                 android:textSize="@dimen/small_font" />
 
+            <TextView
+                android:id="@+id/tv_title_word"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/title_words"
+                android:textColor="@color/primaryTextColor"
+                android:textSize="@dimen/small_font"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_word"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/primaryTextColor"
+                android:textSize="@dimen/small_font" />
+
+            <TextView
+                android:id="@+id/tv_title_translation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/title_translation"
+                android:textColor="@color/primaryTextColor"
+                android:textSize="@dimen/small_font"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_translation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/primaryTextColor"
+                android:textSize="@dimen/small_font" />
+
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="match_parent"
